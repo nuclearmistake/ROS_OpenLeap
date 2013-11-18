@@ -190,6 +190,8 @@ int main(int argc, char **argv)
   leftmgr->setCameraName("leap_left");
   rightmgr = new camera_info_manager::CameraInfoManager(rnh);
   rightmgr->setCameraName("leap_right");
+  left_frame = leftcam;
+  right_frame = rightcam;
   lefttrans = new image_transport::ImageTransport(lnh);
   leftpub = lefttrans->advertiseCamera("image", 1, false);
   righttrans = new image_transport::ImageTransport(rnh);
