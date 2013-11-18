@@ -1,0 +1,20 @@
+<package>
+  <description brief="ros_leap_driver">
+
+     ros_leap_driver
+
+  </description>
+  <author>Eric McCann</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/ros_leap_driver</url>
+  <depend package="std_msgs"/>
+  <depend package="sensor_msgs"/>
+  <depend package="roscpp"/>
+  <depend package="OpenLeap"/>
+  <depend package="image_transport"/>
+  <depend package="camera_info_manager"/>
+
+</package>
+
+

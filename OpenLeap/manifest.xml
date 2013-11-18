@@ -1,0 +1,15 @@
+<package>
+  <description brief="ROS driver for direct access of LEAP Motion cameras">
+
+     This package pulls in Eric McCann's OpenLeap LEAP direct-access library.
+
+  </description>
+  <author>Eric McCann</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/OpenLeap</url>
+  <export>
+    <cpp cflags="-I${prefix}/include -I/usr/include/libusb-1.0" lflags="-L${prefix}/lib -Wl,-rpath,-L${prefix}/lib -lusb-1.0"/>
+  </export>
+  <rosdep name="libusb-1.0"/>
+</package>
