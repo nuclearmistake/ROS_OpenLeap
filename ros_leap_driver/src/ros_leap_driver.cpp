@@ -173,36 +173,27 @@ void doit()
 
 int main(int argc, char **argv)
 {
-  for(int i=0;i<argc;i++)
-		ROS_INFO("ARG[%d]=%s",i, argv[i]);
 	ros::init(argc, argv, "");
 	ros::NodeHandle nh;
-	std::string left_topic, right_topic;	
-	if (!ros::param::get("~left_topic", left_topic))
+	std::string leftcam, rightcam;
+	if (!ros::param::get("~left_camera", leftcam))
 	{
-		left_topic = "/leap/left/image_raw";
+		leftcam = "/leap/left";
 	}
-	if (!ros::param::get("~right_topic", right_topic))
+	if (!ros::param::get("~right_camera", rightcam))
 	{
-		right_topic = "/leap/right/image_color";
+		rightcam = "/leap/right";
 	}
-  if (!ros::param::get("~left_frame", left_frame))
-	{
-		left_frame = "/leap_left";
-	}
-	if (!ros::param::get("~right_frame", right_frame))
-	{
-		right_frame = "/leap_right";
-	}
-  ROS_INFO("PARMS: left_t:%s right_t:%s left_f:%s right_f:%s", left_topic.c_str(), right_topic.c_str(), left_frame.c_str(), right_frame.c_str());
-  leftmgr = new camera_info_manager::CameraInfoManager(nh);
+  ros::NodeHandle lnh(leftcam);
+  ros::NodeHandle rnh(rightcam);
+  leftmgr = new camera_info_manager::CameraInfoManager(lnh);
   leftmgr->setCameraName("leap_left");
-  rightmgr = new camera_info_manager::CameraInfoManager(nh);
+  rightmgr = new camera_info_manager::CameraInfoManager(rnh);
   rightmgr->setCameraName("leap_right");
-  lefttrans = new image_transport::ImageTransport(nh);
-  leftpub = lefttrans->advertiseCamera("left/image", 1, false);
-  righttrans = new image_transport::ImageTransport(nh);
-  rightpub = lefttrans->advertiseCamera("right/image", 1, false);
+  lefttrans = new image_transport::ImageTransport(lnh);
+  leftpub = lefttrans->advertiseCamera("image", 1, false);
+  righttrans = new image_transport::ImageTransport(rnh);
+  rightpub = righttrans->advertiseCamera("image", 1, false);
   boost::thread spinner(doit);
   ros::spin();
   shutdown();
