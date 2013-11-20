@@ -40,7 +40,7 @@ void gotData(camdata_t *data)
   {
 	    current = new frame_t();
       current->left->width = current->right->width = VFRAME_WIDTH;
-      current->left->height = current->right->height = VFRAME_HEIGHT;
+      current->left->height = current->right->height = VFRAME_HEIGHT*2;
       current->left->encoding = current->right->encoding = "rgb8";
       current->left->step = current->right->step = current->left->width * 3;
 //      current->left->data.resize(VFRAME_SIZE);
@@ -49,14 +49,18 @@ void gotData(camdata_t *data)
 
   current->left->data.clear();
   current->right->data.clear();
-  for(int i=0;i<VFRAME_SIZE;i++)
-  {  
-    current->left->data.push_back(data->left[i]);
-    current->left->data.push_back(data->left[i]);
-    current->left->data.push_back(data->left[i]);
-    current->right->data.push_back(data->right[i]);
-    current->right->data.push_back(data->right[i]);
-    current->right->data.push_back(data->right[i]);
+  for(int y=0;y<VFRAME_HEIGHT;y++)
+  {
+    for(int tworows=0;tworows<2;tworows++)
+      for (int x=0; x<VFRAME_WIDTH; x++)
+      {
+        current->left->data.push_back(data->left[VFRAME_WIDTH * y + x]);
+        current->left->data.push_back(data->left[VFRAME_WIDTH * y + x]);
+        current->left->data.push_back(data->left[VFRAME_WIDTH * y + x]);
+        current->right->data.push_back(data->right[VFRAME_WIDTH * y + x]);
+        current->right->data.push_back(data->right[VFRAME_WIDTH * y + x]);
+        current->right->data.push_back(data->right[VFRAME_WIDTH * y + x]);
+      }
   }
 
 //  memcpy(&current->left->data[0], data->left, VFRAME_SIZE);
