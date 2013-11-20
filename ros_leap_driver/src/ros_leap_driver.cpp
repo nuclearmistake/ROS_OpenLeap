@@ -1,14 +1,8 @@
 #include <ros_leap_driver/ros_leap_driver.h>
-#define USE_MATH_DEFINES
-#include <math.h>
+
+leap::driver *drv;
 
 using namespace std;
-
-typedef struct ctx_s ctx_t;
-struct ctx_s
-{
-  int quit;
-};
 
 class frame_t
 {
@@ -16,17 +10,9 @@ public:
   frame_t() : left(sensor_msgs::ImagePtr(new sensor_msgs::Image())), right(sensor_msgs::ImagePtr(new sensor_msgs::Image())) { }  
   sensor_msgs::ImagePtr left;
   sensor_msgs::ImagePtr right;
-  uint32_t id;
-  uint32_t data_len;
-  uint32_t state;
 };
 
-ctx_t ctx_data;
-ctx_t *ctx = NULL;
-map<uint32_t, frame_t*> frame;
-vector<uint32_t> pending;
-stack<frame_t *> recycling;
-frame_t *current = NULL;
+frame_t *current;
 
 image_transport::ImageTransport *lefttrans, *righttrans;
 image_transport::CameraPublisher leftpub, rightpub;
@@ -48,126 +34,47 @@ void publishframe(camera_info_manager::CameraInfoManager *mgr, const image_trans
   campub.publish(img, cinfo);
 }
 
-void process_video_frame(ctx_t *ctx)
+void gotData(camdata_t *data)
 {
+  if (current == NULL)
+  {
+	    current = new frame_t();
+      current->left->width = current->right->width = VFRAME_WIDTH;
+      current->left->height = current->right->height = VFRAME_HEIGHT;
+      current->left->encoding = current->right->encoding = "rgb8";
+      current->left->step = current->right->step = current->left->width * 3;
+//      current->left->data.resize(VFRAME_SIZE);
+//      current->right->data.resize(VFRAME_SIZE);
+  }
+
+  current->left->data.clear();
+  current->right->data.clear();
+  for(int i=0;i<VFRAME_SIZE;i++)
+  {  
+    current->left->data.push_back(data->left[i]);
+    current->left->data.push_back(data->left[i]);
+    current->left->data.push_back(data->left[i]);
+    current->right->data.push_back(data->right[i]);
+    current->right->data.push_back(data->right[i]);
+    current->right->data.push_back(data->right[i]);
+  }
+
+//  memcpy(&current->left->data[0], data->left, VFRAME_SIZE);
+//  memcpy(&current->right->data[0], data->right, VFRAME_SIZE);
+
   const sensor_msgs::ImagePtr l=(const sensor_msgs::ImagePtr)current->left, r=(const sensor_msgs::ImagePtr)current->right;
   publishframe(leftmgr, leftpub, l, left_frame);
   publishframe(rightmgr, rightpub, r, right_frame);
 }
 
-void process_usb_frame(ctx_t *ctx, unsigned char *data, int size)
-{
-  int i,x,y;
-
-  int bHeaderLen = data[0];
-  int bmHeaderInfo = data[1];
-
-  uint32_t dwPresentationTime = *( (uint32_t *) &data[2] );
-
-  frame_t* f = NULL;
-
-  for(vector<uint32_t>::const_iterator it = pending.begin(); it!=pending.end();it++)
-          if ((uint32_t)(*it) == dwPresentationTime)
-          {
-                  f = frame[dwPresentationTime];
-                  break;
-          }
-  if (f == NULL)
-  {
-      if (!recycling.empty()) {
-        f = recycling.top();
-        recycling.pop();
-        f->data_len = 0;
-        f->state = 0;
-      } else {
-        f = new frame_t();
-        f->left->width = f->right->width = VFRAME_WIDTH;
-        f->left->height = f->right->height = VFRAME_HEIGHT;
-        f->left->encoding = f->right->encoding = "rgb8";
-        f->left->step = f->right->step = f->left->width * 3;
-      }
-      f->left->data.clear();
-      f->right->data.clear();
-      frame[dwPresentationTime] = f;
-      pending.push_back(dwPresentationTime);
-      sort(pending.begin(),pending.end());
-      f->id = dwPresentationTime;
-  }
-  
-  //printf("frame time: %u\n", dwPresentationTime);
-
-  for (x=0,y=0,i=bHeaderLen; i < size; i += 2) {
-    f->left->data.push_back(data[i]);
-    f->left->data.push_back(data[i]);
-    f->left->data.push_back(data[i]);
-    f->right->data.push_back(data[i+1]);
-    f->right->data.push_back(data[i+1]);
-    f->right->data.push_back(data[i+1]);
-    f->data_len++;
-  }
-
-  if (bmHeaderInfo & UVC_STREAM_EOF) {
-    if (f->data_len != VFRAME_SIZE) {
-      ROS_DEBUG("wrong frame size got %i expected %i", f->data_len, VFRAME_SIZE);
-      recycling.push(f);
-      frame.erase(f->id);
-      pending.erase(remove(pending.begin(), pending.end(), f->id), pending.end());
-      return ;
-    }
-
-    if (current!=NULL) {
-      recycling.push(current);
-    }
-    current = frame[dwPresentationTime];
-    pending.erase(remove(pending.begin(), pending.end(), dwPresentationTime), pending.end());
-    frame.erase(dwPresentationTime);
-    sort(pending.begin(),pending.end());
-    if (pending.size() > 10) {
-        ROS_WARN("Oh noez! There are %d pending frames in the queue!",(int)pending.size());
-        for(vector<uint32_t>::const_iterator it = pending.begin(); it!=pending.begin()+5;it++)
-        {
-          recycling.push(frame[*it]);
-          frame.erase(*it);
-        }
-        reverse(pending.begin(), pending.end());
-        pending.resize(5);
-        reverse(pending.begin(), pending.end());
-    }
-
-    process_video_frame(ctx);
-  }
-}
-
-void gotData(unsigned char* data, int usb_frame_size)
-{
-  process_usb_frame(ctx, data, usb_frame_size);
-}
-
 // leap init, loop spinner, and leap deinit
 void doit()
 {
-  memset(&ctx_data, 0, sizeof (ctx_data));
-  ctx = &ctx_data;
-  init();
-  setDataCallback(&gotData);
-  spin();
+  drv = new leap::driver(&gotData);
+  drv->spin();
   if (current)
   {
-    //free storage in frame
     free(current);
-  }
-  for(std::vector<uint32_t>::const_iterator it = pending.begin(); it != pending.end(); it++)
-  {
-        frame_t *tmp = frame[*it];
-        //free storage in frame
-        frame.erase((uint32_t)*it);
-        free(tmp);
-  }
-  while(!recycling.empty()) {
-    frame_t *tmp = recycling.top();
-    recycling.pop();
-    //free storage in frame
-    free(tmp);
   }
 }
 
@@ -198,7 +105,7 @@ int main(int argc, char **argv)
   rightpub = righttrans->advertiseCamera("image", 1, false);
   boost::thread spinner(doit);
   ros::spin();
-  shutdown();
+  drv->shutdown();
   spinner.join();
   return (0);
 }
