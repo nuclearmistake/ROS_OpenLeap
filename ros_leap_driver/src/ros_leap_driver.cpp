@@ -75,6 +75,7 @@ void gotData(camdata_t *data)
 void doit()
 {
   drv = new leap::driver(&gotData);
+//  drv->agressivelyAvoidFlashes(true);
   drv->spin();
   if (current)
   {
@@ -101,12 +102,11 @@ int main(int argc, char **argv)
   leftmgr->setCameraName("leap_left");
   rightmgr = new camera_info_manager::CameraInfoManager(rnh);
   rightmgr->setCameraName("leap_right");
-  left_frame = leftcam;
-  right_frame = rightcam;
+  left_frame = right_frame = "/leap";
   lefttrans = new image_transport::ImageTransport(lnh);
-  leftpub = lefttrans->advertiseCamera("image", 1, false);
+  leftpub = lefttrans->advertiseCamera("image_raw", 1, false);
   righttrans = new image_transport::ImageTransport(rnh);
-  rightpub = righttrans->advertiseCamera("image", 1, false);
+  rightpub = righttrans->advertiseCamera("image_raw", 1, false);
   boost::thread spinner(doit);
   ros::spin();
   drv->shutdown();
