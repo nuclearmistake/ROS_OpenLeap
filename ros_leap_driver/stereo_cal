@@ -1,0 +1,1 @@
+ROS_NAMESPACE="/leap" rosrun camera_calibration cameracalibrator.py --size 4x4 --square 0.03968 right:=/leap/right/image_raw left:=/leap/left/image_raw right_camera:=/leap/right left_camera:=/leap/left --approximate=0.01

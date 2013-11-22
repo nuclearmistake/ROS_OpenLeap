@@ -1,0 +1,7 @@
+<launch>
+  <!--<include file="$(find ros_leap_driver)/launch/rectified.launch" />-->
+  <node pkg="ros_leap_driver" type="ros_leap_driver" name="leap_driver" />
+  <group ns="/leap" >
+    <node pkg="stereo_image_proc" type="stereo_image_proc" name="stereo_proc" args="_approximate_sync:=True" />
+  </group>
+</launch>

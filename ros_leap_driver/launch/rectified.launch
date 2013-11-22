@@ -1,0 +1,9 @@
+<launch>
+  <node pkg="ros_leap_driver" type="ros_leap_driver" name="leap_driver" />
+  <group ns="/leap/left" >
+    <node pkg="image_proc" type="image_proc" name="left_proc" />
+  </group>
+  <group ns="/leap/right" >
+    <node pkg="image_proc" type="image_proc" name="right_proc" />
+  </group>
+</launch>
